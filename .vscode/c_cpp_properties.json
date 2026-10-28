@@ -1,0 +1,89 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
+{
+    "configurations": [
+        {
+            "name": "PlatformIO",
+            "includePath": [
+                "/home/time/Documents/FTC_demo/include",
+                "/home/time/Documents/FTC_demo/src",
+                "/home/time/Documents/FTC_demo/.pio/libdeps/uno_q/Arduino_RouterBridge/src",
+                "/home/time/Documents/FTC_demo/.pio/libdeps/uno_q/Arduino_RPClite/src",
+                "/home/time/Documents/FTC_demo/.pio/libdeps/uno_q/MsgPack",
+                "/home/time/.platformio/packages/framework-arduino-zephyr/cores/arduino",
+                "/home/time/.platformio/packages/framework-arduino-zephyr/cores/arduino/api",
+                "/home/time/.platformio/packages/framework-arduino-zephyr/cores/arduino/api/deprecated",
+                "/home/time/.platformio/packages/framework-arduino-zephyr/cores/arduino/api/deprecated-avr-comp",
+                "/home/time/.platformio/packages/framework-arduino-zephyr/variants/arduino_uno_q_stm32u585xx",
+                "/home/time/.platformio/packages/framework-arduino-zephyr/libraries/Arduino_LED_Matrix/src",
+                "/home/time/.platformio/packages/framework-arduino-zephyr/libraries/CAN",
+                "/home/time/.platformio/packages/framework-arduino-zephyr/libraries/RTC",
+                "/home/time/.platformio/packages/framework-arduino-zephyr/libraries/SPI",
+                "/home/time/.platformio/packages/framework-arduino-zephyr/libraries/SocketWrapper",
+                "/home/time/.platformio/packages/framework-arduino-zephyr/libraries/Wire",
+                "/home/time/.platformio/packages/framework-arduino-zephyr/libraries/ea_malloc",
+                "/home/time/.platformio/packages/framework-arduino-zephyr/libraries/stubs",
+                ""
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "/home/time/Documents/FTC_demo/include",
+                    "/home/time/Documents/FTC_demo/src",
+                    "/home/time/Documents/FTC_demo/.pio/libdeps/uno_q/Arduino_RouterBridge/src",
+                    "/home/time/Documents/FTC_demo/.pio/libdeps/uno_q/Arduino_RPClite/src",
+                    "/home/time/Documents/FTC_demo/.pio/libdeps/uno_q/MsgPack",
+                    "/home/time/.platformio/packages/framework-arduino-zephyr/cores/arduino",
+                    "/home/time/.platformio/packages/framework-arduino-zephyr/cores/arduino/api",
+                    "/home/time/.platformio/packages/framework-arduino-zephyr/cores/arduino/api/deprecated",
+                    "/home/time/.platformio/packages/framework-arduino-zephyr/cores/arduino/api/deprecated-avr-comp",
+                    "/home/time/.platformio/packages/framework-arduino-zephyr/variants/arduino_uno_q_stm32u585xx",
+                    "/home/time/.platformio/packages/framework-arduino-zephyr/libraries/Arduino_LED_Matrix/src",
+                    "/home/time/.platformio/packages/framework-arduino-zephyr/libraries/CAN",
+                    "/home/time/.platformio/packages/framework-arduino-zephyr/libraries/RTC",
+                    "/home/time/.platformio/packages/framework-arduino-zephyr/libraries/SPI",
+                    "/home/time/.platformio/packages/framework-arduino-zephyr/libraries/SocketWrapper",
+                    "/home/time/.platformio/packages/framework-arduino-zephyr/libraries/Wire",
+                    "/home/time/.platformio/packages/framework-arduino-zephyr/libraries/ea_malloc",
+                    "/home/time/.platformio/packages/framework-arduino-zephyr/libraries/stubs",
+                    ""
+                ]
+            },
+            "defines": [
+                "PLATFORMIO=60200",
+                "ARDUINO=10607",
+                "ARDUINO_ARCH_ZEPHYR",
+                "ARDUINO_UNO_Q",
+                "_PICOLIBC_CTYPE_SMALL=1",
+                "ARDUINO_LIBRARY_DISCOVERY_PHASE=0",
+                ""
+            ],
+            "cStandard": "gnu17",
+            "cppStandard": "gnu++17",
+            "forcedInclude": [
+                "/home/time/.platformio/packages/framework-arduino-zephyr/variants/arduino_uno_q_stm32u585xx/llext-edk/include/zephyr/include/generated/zephyr/autoconf.h",
+                "/home/time/.platformio/packages/framework-arduino-zephyr/variants/arduino_uno_q_stm32u585xx/llext-edk/include/zephyr/include/zephyr/toolchain/zephyr_stdint.h",
+                ""
+            ],
+            "compilerPath": "/home/time/.platformio/packages/toolchain-gccarmzephyreabi/bin/arm-zephyr-eabi-gcc",
+            "compilerArgs": [
+                "@/home/time/.platformio/packages/framework-arduino-zephyr/variants/arduino_uno_q_stm32u585xx/cflags.txt",
+                "-mcpu=cortex-m33",
+                "-mthumb",
+                "-mabi=aapcs",
+                "-mfpu=fpv5-sp-d16",
+                "-mfloat-abi=hard",
+                "-mfp16-format=ieee",
+                "-mtp=soft",
+                "-mlong-calls",
+                "-iprefix/home/time/.platformio/packages/framework-arduino-zephyr/variants/arduino_uno_q_stm32u585xx",
+                "@/home/time/.platformio/packages/framework-arduino-zephyr/variants/arduino_uno_q_stm32u585xx/includes.txt",
+                ""
+            ]
+        }
+    ],
+    "version": 4
+}

@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#09111e">
+  <title>Mecanum Teleop</title>
+  <style>
+    :root { color-scheme: dark; font: 16px/1.4 system-ui, sans-serif; background: #09111e; color: #eef4ff; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; padding: max(12px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); }
+    main { width: min(900px, 100%); margin: auto; }
+    h1 { margin: 8px 0 2px; font-size: clamp(1.35rem, 4vw, 2rem); }
+    .sub { color: #a8b9d3; margin: 0 0 14px; }
+    .status { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 16px; }
+    .badge { border: 1px solid #35465f; background: #111d30; padding: 6px 10px; border-radius: 999px; font-size: .85rem; }
+    .badge.ok { color: #82f2b0; border-color: #2d9560; }
+    .badge.bad { color: #ff9b9b; border-color: #a94646; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(250px, .9fr); gap: 14px; }
+    .panel { background: #101b2c; border: 1px solid #263650; border-radius: 16px; padding: 14px; }
+    .panel h2 { font-size: 1rem; margin: 0 0 10px; color: #c7d8f0; }
+    .twin { display: block; width: 100%; height: auto; aspect-ratio: 1.35; background: #0b1421; border-radius: 12px; }
+    .wheel-readout { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 9px; }
+    .wheel-readout div { padding: 7px 3px; border-radius: 8px; text-align: center; background: #17253a; color: #bfd2ef; font: .78rem ui-monospace, monospace; }
+    .controls { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .stick { width: min(70vw, 290px); aspect-ratio: 1; border: 2px solid #334b6c; border-radius: 50%; position: relative; touch-action: none; user-select: none; background: radial-gradient(circle, #172841 0 28%, #111d2e 29% 68%, #142238 69%); }
+    .stick::before, .stick::after { content: ""; position: absolute; background: #30435e; }
+    .stick::before { height: 1px; width: 100%; top: 50%; left: 0; }
+    .stick::after { width: 1px; height: 100%; left: 50%; top: 0; }
+    .knob { position: absolute; width: 31%; aspect-ratio: 1; border-radius: 50%; background: #4c9dff; border: 3px solid #c6e3ff; box-shadow: 0 5px 18px #0009; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+    .turn-row { display: flex; gap: 12px; align-items: center; }
+    button { color: #fff; border: 1px solid #405a7c; background: #1b2b42; border-radius: 12px; padding: 12px 18px; font: inherit; font-weight: 650; touch-action: none; user-select: none; }
+    button.active { background: #234b77; border-color: #72b5ff; }
+    #stop { background: #8c2934; border-color: #ff6475; min-width: 100px; }
+    .keys { color: #a8b9d3; font-size: .86rem; text-align: center; }
+    kbd { display: inline-block; min-width: 24px; padding: 2px 6px; border: 1px solid #52637c; border-radius: 5px; background: #17253a; color: #fff; }
+    .note { margin-top: 12px; color: #91a2bb; font-size: .82rem; }
+    @media (max-width: 660px) { .layout { grid-template-columns: 1fr; } .panel { padding: 12px; } }
+    @media (hover: hover) and (pointer: fine) { .stick { width: min(38vw, 230px); } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>MECHANUM · Teleop</h1>
+  <p class="sub">เชื่อม Wi‑Fi ของ UNO Q แล้วควบคุมหุ่นยนต์ในเครือข่ายเดียวกัน</p>
+  <div class="status" aria-live="polite">
+    <span id="link" class="badge bad">R4: กำลังเชื่อมต่อ</span>
+    <span id="mode" class="badge">Deadman: ปล่อย</span>
+    <span id="axes" class="badge">F 0 · S 0 · T 0</span>
+  </div>
+  <div class="layout">
+    <section class="panel">
+      <h2>Digital twin · pose ประมาณจาก PWM และวาดเส้นทาง (ไม่ใช่ odometry)</h2>
+      <div style="display:flex;align-items:center;gap:8px;margin:-4px 0 9px;color:#a8b9d3;font-size:.85rem">
+        <label for="speed">ความเร็วสูงสุด</label>
+        <input id="speed" type="range" min="20" max="100" value="60" step="5" aria-label="ความเร็วสูงสุด">
+        <output id="speed-value">60%</output>
+      </div>
+      <canvas id="twin" class="twin" width="640" height="470" aria-label="หุ่นยนต์ mecanum มองจากด้านบน"></canvas>
+      <div class="wheel-readout">
+        <div>FL <b id="fl">0</b></div><div>FR <b id="fr">0</b></div>
+        <div>RL <b id="rl">0</b></div><div>RR <b id="rr">0</b></div>
+      </div>
+    </section>
+    <section class="panel controls">
+      <h2>จอยสติ๊ก (มือถือ) / WASD (คอม) · เลี้ยวด้วย J/L</h2>
+      <div id="stick" class="stick" role="application" aria-label="จอยสติ๊กขับหุ่นยนต์">
+        <div id="knob" class="knob"></div>
+      </div>
+      <div class="turn-row">
+        <button id="turn-left" type="button" aria-label="หมุนซ้าย">J ↶</button>
+        <button id="stop" type="button">STOP</button>
+        <button id="turn-right" type="button" aria-label="หมุนขวา">L ↷</button>
+      </div>
+      <div class="keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> เคลื่อนที่ / <kbd>J</kbd><kbd>L</kbd> หมุน<br>กดค้างเพื่อขับ ปล่อยปุ่มแล้วหยุด · เมาส์ลากจอยบนคอมได้</div>
+      <p class="note">ปล่อย input หรือถ้าการเชื่อมต่อขาด ระบบหยุดมอเตอร์อัตโนมัติ · ทดสอบครั้งแรกโดยยกล้อพ้นพื้น</p>
+    </section>
+  </div>
+</main>
+<script>
+(() => {
+  const axes = { forward: 0, strafe: 0, turn: 0, deadman: false };
+  let maxSpeed = 60;
+  const stick = document.querySelector("#stick"), knob = document.querySelector("#knob");
+  const speedControl = document.querySelector("#speed"), speedValue = document.querySelector("#speed-value");
+  speedControl.addEventListener("input", () => {
+    const previousSpeed = maxSpeed;
+    maxSpeed = Number(speedControl.value);
+    speedValue.value = `${maxSpeed}%`;
+    speedValue.textContent = `${maxSpeed}%`;
+    if (axes.deadman && previousSpeed > 0) {
+      const ratio = maxSpeed / previousSpeed;
+      axes.forward = Math.round(axes.forward * ratio);
+      axes.strafe = Math.round(axes.strafe * ratio);
+      axes.turn = Math.round(axes.turn * ratio);
+      sendDrive(true);
+    }
+  });
+  function scaleAxes() {
+    axes.forward = Math.round(axes.forward * maxSpeed / 100);
+    axes.strafe = Math.round(axes.strafe * maxSpeed / 100);
+    axes.turn = Math.round(axes.turn * maxSpeed / 100);
+    axes.deadman = axes.forward !== 0 || axes.strafe !== 0 || axes.turn !== 0;
+  }
+  const keys = new Set(), twin = document.querySelector("#twin"), ctx = twin.getContext("2d");
+  let pointer = null, lastSent = "", status = { linkConnected: false, wheelPwm: [0, 0, 0, 0] };
+  const twinPose = { x: 0, y: 0, heading: 0 };
+  const twinTrail = [];
+  let lastFrameAt = performance.now(), lastTrailAt = 0;
+
+  function setAxis(axis, value) {
+    axes[axis] = Math.max(-100, Math.min(100, Math.round(value)));
+    axes.deadman = axes.forward !== 0 || axes.strafe !== 0 || axes.turn !== 0;
+  }
+  function renderAxes() {
+    document.querySelector("#axes").textContent = `F ${axes.forward} · S ${axes.strafe} · T ${axes.turn}`;
+    document.querySelector("#mode").textContent = `Deadman: ${axes.deadman ? "กดอยู่" : "ปล่อย"}`;
+    document.querySelector("#mode").className = `badge ${axes.deadman ? "ok" : ""}`;
+    const wheels = status.wheelPwm || [0, 0, 0, 0];
+    ["fl", "fr", "rl", "rr"].forEach((id, i) => { document.querySelector(`#${id}`).textContent = wheels[i] || 0; });
+  }
+  async function sendDrive(force = false) {
+    const body = JSON.stringify(axes);
+    if (!force && body === lastSent) return;
+    lastSent = body;
+    try {
+      const response = await fetch("/api/drive", { method: "POST", headers: { "Content-Type": "application/json" }, body });
+      if (!response.ok) throw new Error("drive link unavailable");
+    } catch (_) {
+      status.linkConnected = false;
+      axes.forward = axes.strafe = axes.turn = 0;
+      axes.deadman = false;
+      keys.clear();
+      lastSent = JSON.stringify(axes);
+      document.querySelector("#link").textContent = "R4: ขาดการเชื่อมต่อ";
+      document.querySelector("#link").className = "badge bad";
+    }
+    renderAxes();
+  }
+  function stop() {
+    axes.forward = axes.strafe = axes.turn = 0;
+    axes.deadman = false;
+    keys.clear();
+    ["turn-left", "turn-right"].forEach(id => document.getElementById(id).classList.remove("active"));
+    knob.style.transform = "translate(-50%, -50%)";
+    lastSent = "";
+    sendDrive(true);
+  }
+  function movePointer(event) {
+    const rect = stick.getBoundingClientRect(), radius = rect.width * 0.35;
+    const dx = event.clientX - rect.left - rect.width / 2;
+    const dy = event.clientY - rect.top - rect.height / 2;
+    const scale = Math.min(1, radius / Math.max(1, Math.hypot(dx, dy)));
+    const x = dx * scale, y = dy * scale;
+    knob.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+    setAxis("strafe", x / radius * 100);
+    setAxis("forward", -y / radius * 100);
+    scaleAxes();
+    sendDrive();
+  }
+  stick.addEventListener("pointerdown", event => {
+    pointer = event.pointerId;
+    stick.setPointerCapture(pointer);
+    movePointer(event);
+    event.preventDefault();
+  });
+  stick.addEventListener("pointermove", event => { if (event.pointerId === pointer) movePointer(event); });
+  stick.addEventListener("pointerup", event => { if (event.pointerId === pointer) { pointer = null; stop(); } });
+  stick.addEventListener("pointercancel", () => { pointer = null; stop(); });
+
+  const turnButtons = [["turn-left", "j", -100], ["turn-right", "l", 100]];
+  for (const [id, key, value] of turnButtons) {
+    const button = document.getElementById(id);
+    button.addEventListener("pointerdown", event => { button.setPointerCapture(event.pointerId); keys.add(key); button.classList.add("active"); setAxis("turn", value); scaleAxes(); sendDrive(); event.preventDefault(); });
+    button.addEventListener("pointerup", () => { keys.delete(key); button.classList.remove("active"); updateKeyboard(); });
+    button.addEventListener("pointercancel", () => { keys.delete(key); button.classList.remove("active"); updateKeyboard(); });
+    button.addEventListener("lostpointercapture", () => { keys.delete(key); button.classList.remove("active"); updateKeyboard(); });
+  }
+  document.querySelector("#stop").addEventListener("pointerdown", event => { event.preventDefault(); stop(); });
+
+  function updateKeyboard() {
+    const forward = (keys.has("w") ? 100 : 0) - (keys.has("s") ? 100 : 0);
+    const strafe = (keys.has("d") ? 100 : 0) - (keys.has("a") ? 100 : 0);
+    const turn = (keys.has("l") ? 100 : 0) - (keys.has("j") ? 100 : 0);
+    setAxis("forward", forward); setAxis("strafe", strafe); setAxis("turn", turn);
+    scaleAxes();
+    renderAxes(); sendDrive();
+  }
+  window.addEventListener("keydown", event => {
+    if (event.repeat || ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
+    const key = event.key.toLowerCase();
+    if (["w", "a", "s", "d", "j", "l"].includes(key)) { keys.add(key); event.preventDefault(); updateKeyboard(); }
+    if (key === " ") { event.preventDefault(); stop(); }
+  });
+  window.addEventListener("keyup", event => {
+    const key = event.key.toLowerCase();
+    if (keys.delete(key)) updateKeyboard();
+  });
+  window.addEventListener("blur", stop);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) stop(); });
+
+  async function pollStatus() {
+    try {
+      const response = await fetch("/api/status", { cache: "no-store" });
+      if (!response.ok) throw new Error("status unavailable");
+      status = await response.json();
+      const badge = document.querySelector("#link");
+      badge.textContent = status.linkConnected ? "R4: เชื่อมต่อแล้ว" : "R4: ขาดการเชื่อมต่อ";
+      badge.className = `badge ${status.linkConnected ? "ok" : "bad"}`;
+      renderAxes();
+    } catch (_) {
+      status.linkConnected = false;
+      document.querySelector("#link").textContent = "R4: ขาดการเชื่อมต่อ";
+      document.querySelector("#link").className = "badge bad";
+      stop();
+    }
+  }
+  function drawTwin(wheels, dt) {
+    const w = twin.width, h = twin.height;
+    const fl = wheels[0] || 0, fr = wheels[1] || 0, rl = wheels[2] || 0, rr = wheels[3] || 0;
+    // Approximate pose from wheel PWM only. Wheel slip, gearing and real motion are unknown.
+    if (status.linkConnected) {
+      const forward = (fl + fr + rl + rr) / 400;
+      const right = (fl - fr - rl + rr) / 400;
+      const clockwise = (-fl + fr - rl + rr) / 400;
+      twinPose.x += (Math.sin(twinPose.heading) * forward + Math.cos(twinPose.heading) * right) * dt * 90;
+      twinPose.y += (-Math.cos(twinPose.heading) * forward + Math.sin(twinPose.heading) * right) * dt * 90;
+      twinPose.heading += clockwise * dt * 1.5;
+      twinPose.x = Math.max(-w * 0.31, Math.min(w * 0.31, twinPose.x));
+      twinPose.y = Math.max(-h * 0.28, Math.min(h * 0.28, twinPose.y));
+    }
+    if (performance.now() - lastTrailAt > 120 && (Math.abs(twinPose.x) + Math.abs(twinPose.y) > 1)) {
+      twinTrail.push([twinPose.x, twinPose.y]);
+      if (twinTrail.length > 90) twinTrail.shift();
+      lastTrailAt = performance.now();
+    }
+    ctx.clearRect(0, 0, w, h);
+    ctx.strokeStyle = "#1a2b42"; ctx.lineWidth = 1;
+    for (let x = 0; x <= w; x += 32) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+    for (let y = 0; y <= h; y += 32) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+    const cx = w / 2, cy = h / 2;
+    ctx.strokeStyle = "#415873"; ctx.setLineDash([5, 6]); ctx.lineWidth = 2;
+    ctx.strokeRect(cx - w * 0.31, cy - h * 0.28, w * 0.62, h * 0.56); ctx.setLineDash([]);
+    ctx.fillStyle = "#92a9c3"; ctx.font = "15px system-ui"; ctx.fillText("จำลองพื้นที่การเคลื่อนที่", 12, 24);
+    if (twinTrail.length > 1) {
+      ctx.beginPath();
+      twinTrail.forEach(([x, y], i) => i ? ctx.lineTo(cx + x, cy + y) : ctx.moveTo(cx + x, cy + y));
+      ctx.strokeStyle = "#4c9dff77"; ctx.lineWidth = 3; ctx.stroke();
+    }
+    ctx.save(); ctx.translate(cx + twinPose.x, cy + twinPose.y); ctx.rotate(twinPose.heading);
+    ctx.fillStyle = "#263a55"; ctx.strokeStyle = "#8eb9ed"; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.roundRect(-100, -137, 200, 274, 24); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#4c9dff"; ctx.beginPath(); ctx.moveTo(0, -158); ctx.lineTo(-18, -128); ctx.lineTo(18, -128); ctx.closePath(); ctx.fill();
+    const positions = [[-117, -90], [117, -90], [-117, 90], [117, 90]];
+    positions.forEach(([x, y], i) => {
+      const power = wheels[i] || 0, magnitude = Math.min(1, Math.abs(power) / 100);
+      ctx.save(); ctx.translate(x, y);
+      ctx.fillStyle = power === 0 ? "#26384d" : (power > 0 ? "#36d39a" : "#ff8d67");
+      ctx.strokeStyle = "#b7cae1"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.roundRect(-19, -39, 38, 78, 8); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = "#d7e7fb"; ctx.lineWidth = 3 + magnitude * 4; ctx.beginPath();
+      const forward = (i === 0 || i === 2) ? power : -power;
+      if (forward === 0) { ctx.moveTo(-10, 0); ctx.lineTo(10, 0); }
+      else if (forward > 0) { ctx.moveTo(-8, 9); ctx.lineTo(8, -9); }
+      else { ctx.moveTo(-8, -9); ctx.lineTo(8, 9); }
+      ctx.stroke(); ctx.restore();
+    });
+    ctx.restore();
+  }
+  function animateTwin(now) {
+    const dt = Math.min(0.05, Math.max(0, (now - lastFrameAt) / 1000));
+    lastFrameAt = now;
+    drawTwin(status.wheelPwm || [0, 0, 0, 0], dt);
+    requestAnimationFrame(animateTwin);
+  }
+  renderAxes();
+  requestAnimationFrame(animateTwin);
+  setInterval(pollStatus, 200);
+  setInterval(() => { if (axes.deadman) sendDrive(true); }, 100);
+  sendDrive(true);
+})();
+</script>
+</body>
+</html>
