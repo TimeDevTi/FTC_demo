@@ -5,7 +5,7 @@
 ## โครงระบบ
 
 - **Arduino UNO Q:** Linux Debian เปิดเว็บ UI/HTTP บนพอร์ต 8080; sketch บน MCU รับคำสั่ง RPC จาก Linux แล้วส่งเฟรม UART ไป R4 Minima
-- **Arduino UNO R4 Minima:** รับ UART, คำนวณ mecanum mixing, สร้าง PWM/DIR ให้ Cytron 4 ช่อง และหยุดเมื่อไม่มีคำสั่ง/deadman
+- **Arduino UNO R4 Minima:** รับ UART, คำนวณ mecanum mixing, ขับ MDD3A สองช่องแบบ PWM/PWM และ MD10C R3 สองตัวแบบ PWM/DIR; หยุดเมื่อไม่มีคำสั่ง/deadman
 - **Web UI:** จอย touch/mouse; บนคอมพิวเตอร์ใช้ `W/A/S/D` ขับและกด `J/L` ค้างเพื่อหมุน มีปุ่ม `STOP` และหยุดเมื่อปล่อยจอย/เสีย focus
 - **Digital twin:** มุมมองบนแบบ 2D ตามสไตล์การจำลองใน `web_v8`; แสดงล้อและ PWM ที่ตอบกลับจาก R4 เท่านั้น ไม่ใช่ odometry/ตำแหน่งจริง เพราะยังไม่มี encoder/IMU รวมในเฟิร์มแวร์นี้
 - **ลิงก์บอร์ด:** UART `Serial1` 115200 baud, framed packet พร้อม CRC-8
@@ -77,6 +77,8 @@ python3 tools/test_native.py
 
 ## สถานะฮาร์ดแวร์ที่ยังต้องยืนยัน
 
-- mapping เริ่มต้นสมมติให้ driver 2-channel คุมล้อหน้า FL/FR และ single-channel สองตัวคุม RL/RR; ทิศมอเตอร์, รุ่น Cytron, motor supply/current, PWM/DIR/โหมดจริงยังไม่ได้ยืนยัน
+- จากภาพระบุ driver ด้านบนเป็น MDD3A โดยประมาณ และสองตัวล่างเป็น MD10C R3; ยืนยันข้อความรุ่นบนบอร์ดด้านบนก่อนต่อสาย
+- mapping ปัจจุบันกำหนด MDD3A คุมล้อหน้า FL/FR และ MD10C สองตัวคุมล้อหลัง RL/RR; ยืนยันตำแหน่งมอเตอร์/ช่อง A-B และทิศล้อขณะยกล้อพ้นพื้น
+- ตรวจแรงดันแบตเตอรี่ให้เข้ากับทั้ง MDD3A (4–16 V) และ MD10C (5–30 V) พร้อมตรวจ stall current ของมอเตอร์แต่ละล้อเทียบกับขีดจำกัดของ channel ก่อนจ่ายไฟ
 - โปรดทดสอบยกล้อพ้นพื้นและตั้ง current limit/ใช้ battery disconnect ก่อนทดสอบจริง; ไม่มี software e-stop แทน hardware cutoff
 - R4 input/output UART และ UNO Q เป็นคนละ logic-voltage domain: ใช้ level shifter สำหรับ TX/RX ทั้งสองทิศและต่อ GND ร่วม

@@ -16,14 +16,27 @@ bool deadman = false;
 int8_t requested[4] = {0, 0, 0, 0};
 int8_t applied[4] = {0, 0, 0, 0};
 
+void writePwm(uint8_t pin, uint8_t duty) {
+  analogWrite(pin, duty);
+}
+
 void applyMotor(uint8_t index, int8_t power) {
   const robot_config::MotorPins &motor = robot_config::MOTORS[index];
   int16_t signedPower = power;
   if (motor.inverted) signedPower = -signedPower;
-  const bool forward = signedPower >= 0;
-  const uint8_t magnitude = static_cast<uint8_t>(forward ? signedPower : -signedPower);
-  digitalWrite(motor.direction, forward ? HIGH : LOW);
-  analogWrite(motor.pwm, static_cast<uint8_t>((static_cast<uint16_t>(magnitude) * 255u) / 100u));
+  const uint8_t magnitude = static_cast<uint8_t>(signedPower < 0 ? -signedPower : signedPower);
+  const uint8_t duty = static_cast<uint8_t>((static_cast<uint16_t>(magnitude) * 255u) / 100u);
+
+  if (motor.mode == robot_config::DUAL_PWM) {
+    // MDD3A PWM_PWM: drive only one input for a direction; zero holds both low.
+    writePwm(motor.inputA, signedPower > 0 ? duty : 0);
+    writePwm(motor.inputB, signedPower < 0 ? duty : 0);
+    return;
+  }
+
+  // MD10C R3 sign-magnitude mode: PWM controls speed; DIR controls direction.
+  digitalWrite(motor.inputB, signedPower >= 0 ? HIGH : LOW);
+  writePwm(motor.inputA, duty);
 }
 
 void stopDrive() {
@@ -107,12 +120,13 @@ void printStatus(bool commandFresh) {
 }  // namespace
 
 void setup() {
-  // Force every motor input low before opening the serial link or USB console.
+  // Force every driver input low before opening the serial link or USB console.
   for (uint8_t i = 0; i < robot_config::MOTOR_COUNT; ++i) {
-    pinMode(robot_config::MOTORS[i].pwm, OUTPUT);
-    pinMode(robot_config::MOTORS[i].direction, OUTPUT);
-    digitalWrite(robot_config::MOTORS[i].pwm, LOW);
-    digitalWrite(robot_config::MOTORS[i].direction, LOW);
+    const robot_config::MotorPins &motor = robot_config::MOTORS[i];
+    pinMode(motor.inputA, OUTPUT);
+    pinMode(motor.inputB, OUTPUT);
+    digitalWrite(motor.inputA, LOW);
+    digitalWrite(motor.inputB, LOW);
   }
   analogWriteResolution(8);  // match the 0-255 duty conversion in applyMotor().
   Serial.begin(115200);

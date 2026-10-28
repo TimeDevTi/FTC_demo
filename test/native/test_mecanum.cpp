@@ -1,7 +1,20 @@
 #include <assert.h>
 #include <stdint.h>
 #include <robot/Mecanum.h>
+#include <robot/Config.h>
 #include <link/DriveProtocol.h>
+
+static void testDriverPinMap() {
+  assert(robot_config::MOTOR_COUNT == 4);
+  assert(robot_config::MOTORS[0].inputA == 3 && robot_config::MOTORS[0].inputB == 5);
+  assert(robot_config::MOTORS[0].mode == robot_config::DUAL_PWM);
+  assert(robot_config::MOTORS[1].inputA == 6 && robot_config::MOTORS[1].inputB == 9);
+  assert(robot_config::MOTORS[1].mode == robot_config::DUAL_PWM);
+  assert(robot_config::MOTORS[2].inputA == 10 && robot_config::MOTORS[2].inputB == 4);
+  assert(robot_config::MOTORS[2].mode == robot_config::PWM_DIR);
+  assert(robot_config::MOTORS[3].inputA == 11 && robot_config::MOTORS[3].inputB == 7);
+  assert(robot_config::MOTORS[3].mode == robot_config::PWM_DIR);
+}
 
 static void testMecanumAxes() {
   mecanum::WheelPowers wheels = mecanum::mix(100, 0, 0);
@@ -68,6 +81,7 @@ static void testStatusFrames() {
 }
 
 int main() {
+  testDriverPinMap();
   testMecanumAxes();
   testMecanumNormalization();
   testDriveFrames();
